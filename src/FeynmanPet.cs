@@ -5,6 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -440,6 +442,9 @@ namespace FeynmanPet
         private readonly MenuItem topmostMenuItem;
         private readonly MenuItem autoWalkMenuItem;
         private readonly SpeechBubbleWindow bubbleWindow;
+        private AssistantSettings assistantSettings;
+        private AssistantWindow assistantWindow;
+        private MicrophoneButtonWindow microphoneWindow;
 
         private System.Windows.Forms.NotifyIcon trayIcon;
         private System.Windows.Forms.ContextMenuStrip trayMenu;
@@ -469,6 +474,8 @@ namespace FeynmanPet
         private HwndSource hwndSource;
         private Action demoCompletion;
         private int demoIndex;
+        private bool assistantInteractionActive;
+        private bool petClosing;
 
         public PetWindow(
             string projectRoot,
@@ -482,6 +489,7 @@ namespace FeynmanPet
             this.settings = settings;
             this.persistSettings = persistSettings;
             this.autoWalkEnabled = settings.AutoWalk;
+            this.assistantSettings = AssistantSettings.Load(projectRoot);
 
             string profileName = !String.IsNullOrEmpty(profileOverride)
                 ? profileOverride
@@ -555,12 +563,20 @@ namespace FeynmanPet
                 {
                     bubbleWindow.PositionAbove(this);
                 }
+                if (microphoneWindow != null)
+                {
+                    microphoneWindow.PositionNearPet();
+                }
             };
             SizeChanged += delegate
             {
                 if (bubbleWindow.IsVisible)
                 {
                     bubbleWindow.PositionAbove(this);
+                }
+                if (microphoneWindow != null)
+                {
+                    microphoneWindow.PositionNearPet();
                 }
             };
 
@@ -578,9 +594,147 @@ namespace FeynmanPet
             get { return currentProfile.Name; }
         }
 
+        public bool OpenAssistantOnStartup
+        {
+            get;
+            set;
+        }
+
         public bool HasState(string stateName)
         {
             return currentProfile.States.ContainsKey(stateName);
+        }
+
+        public void OpenAssistant(bool startRecording)
+        {
+            if (assistantWindow == null)
+            {
+                assistantWindow = new AssistantWindow(projectRoot, this, persistSettings);
+            }
+            if (startRecording)
+            {
+                assistantWindow.OpenAndStartRecording();
+            }
+            else
+            {
+                assistantWindow.OpenOnly();
+            }
+        }
+
+        public void ApplyAssistantSettings(AssistantSettings updatedSettings)
+        {
+            assistantSettings = updatedSettings;
+            UpdateMicrophoneButtonVisibility();
+            if (assistantWindow != null)
+            {
+                assistantWindow.SetTopmost(Topmost);
+            }
+        }
+
+        public void OnAssistantClosed()
+        {
+            assistantWindow = null;
+            assistantInteractionActive = false;
+            SetMicButtonMode(MicButtonMode.Idle);
+            if (!petClosing && IsLoaded)
+            {
+                SetState("idle", null, false, false);
+            }
+        }
+
+        public void SetMicButtonMode(MicButtonMode mode)
+        {
+            if (microphoneWindow != null)
+            {
+                microphoneWindow.SetMode(mode);
+            }
+        }
+
+        public void ShowAssistantBubble(string text, int durationMs)
+        {
+            if (!petClosing && !String.IsNullOrWhiteSpace(text))
+            {
+                string excerpt = text.Replace("\r", " ").Replace("\n", " ");
+                if (excerpt.Length > 170)
+                {
+                    excerpt = excerpt.Substring(0, 170) + "...";
+                }
+                ShowBubble(excerpt, durationMs);
+            }
+        }
+
+        public void ApplyAssistantUiState(AssistantUiState state, string message)
+        {
+            if (petClosing || !IsLoaded)
+            {
+                return;
+            }
+            bool hold = state == AssistantUiState.Listening ||
+                state == AssistantUiState.Recognizing ||
+                state == AssistantUiState.Thinking ||
+                state == AssistantUiState.Speaking;
+            assistantInteractionActive = hold;
+            string petState = "idle";
+            if (state == AssistantUiState.Thinking)
+            {
+                petState = "think";
+            }
+            else if (state == AssistantUiState.Speaking)
+            {
+                petState = "explain";
+            }
+            SetState(petState, null, false, false);
+            if (hold)
+            {
+                autoReturnTimer.Stop();
+            }
+            string bubble = message;
+            if (state == AssistantUiState.Ready)
+            {
+                bubble = null;
+            }
+            if (!String.IsNullOrEmpty(bubble))
+            {
+                bubble = bubble.Replace("\r", " ").Replace("\n", " ");
+                if (bubble.Length > 90)
+                {
+                    bubble = bubble.Substring(0, 90) + "...";
+                }
+                ShowBubble(bubble, hold ? 12000 : 2200);
+            }
+        }
+
+        private void UpdateMicrophoneButtonVisibility()
+        {
+            if (!assistantSettings.ShowMicButton || !IsVisible)
+            {
+                if (microphoneWindow != null)
+                {
+                    microphoneWindow.Hide();
+                }
+                return;
+            }
+            if (microphoneWindow == null)
+            {
+                microphoneWindow = new MicrophoneButtonWindow(this);
+                microphoneWindow.ToggleRequested += delegate
+                {
+                    if (assistantWindow != null && assistantWindow.IsVisible)
+                    {
+                        assistantWindow.ToggleRecordingFromShortcut();
+                    }
+                    else
+                    {
+                        OpenAssistant(true);
+                    }
+                };
+            }
+            microphoneWindow.SetTopmost(Topmost);
+            if (!microphoneWindow.IsVisible)
+            {
+                microphoneWindow.Show();
+            }
+            microphoneWindow.PositionNearPet();
         }
 
         private ContextMenu BuildContextMenu(
@@ -599,6 +753,11 @@ namespace FeynmanPet
             menu.Items.Add(CreateStateItem("讲解物理", "explain"));
             menu.Items.Add(CreateStateItem("点击回应", "click"));
             menu.Items.Add(CreateStateItem("摸头回应", "pet"));
+            menu.Items.Add(new Separator());
+            MenuItem voiceChat = new MenuItem();
+            voiceChat.Header = "AI 语音对话…";
+            voiceChat.Click += delegate { OpenAssistant(false); };
+            menu.Items.Add(voiceChat);
             menu.Items.Add(new Separator());
 
             MenuItem sizeRoot = new MenuItem();
@@ -684,6 +843,14 @@ namespace FeynmanPet
             trayHideItem.Click += delegate { HidePet(); };
             trayMenu.Items.Add(trayShowItem);
             trayMenu.Items.Add(trayHideItem);
+            System.Windows.Forms.ToolStripMenuItem voiceChat =
+                new System.Windows.Forms.ToolStripMenuItem("AI 语音对话");
+            voiceChat.Click += delegate
+            {
+                ShowPet();
+                OpenAssistant(false);
+            };
+            trayMenu.Items.Add(voiceChat);
             trayMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
 
             System.Windows.Forms.ToolStripMenuItem sizeRoot =
@@ -749,6 +916,12 @@ namespace FeynmanPet
             ApplyWindowPixelSize();
             RestoreWindowPosition();
             ApplyTopmostToNativeWindow();
+            if (OpenAssistantOnStartup)
+            {
+                Dispatcher.BeginInvoke(
+                    DispatcherPriority.ApplicationIdle,
+                    new Action(delegate { OpenAssistant(false); }));
+            }
 
             RuntimeLog.Write(
                 "Window created. handle=" + handle.ToString() +
@@ -761,6 +934,7 @@ namespace FeynmanPet
         private void PetWindowLoaded(object sender, RoutedEventArgs e)
         {
             CreateTrayIcon();
+            UpdateMicrophoneButtonVisibility();
             behaviorTimer.Interval = TimeSpan.FromSeconds(6.5);
             behaviorTimer.Start();
             if (String.Equals(currentStateName, "idle", StringComparison.OrdinalIgnoreCase))
@@ -775,6 +949,7 @@ namespace FeynmanPet
 
         private void PetWindowClosed(object sender, EventArgs e)
         {
+            petClosing = true;
             SaveWindowState();
             frameTimer.Stop();
             autoReturnTimer.Stop();
@@ -793,6 +968,16 @@ namespace FeynmanPet
                 trayIcon.Dispose();
                 trayIcon = null;
             }
+            if (assistantWindow != null)
+            {
+                assistantWindow.Close();
+                assistantWindow = null;
+            }
+            if (microphoneWindow != null)
+            {
+                microphoneWindow.Close();
+                microphoneWindow = null;
+            }
             bubbleWindow.Close();
             RuntimeLog.Write("Window closed.");
         }
@@ -807,6 +992,7 @@ namespace FeynmanPet
                     frameTimer.Start();
                 }
                 behaviorTimer.Start();
+                UpdateMicrophoneButtonVisibility();
                 UpdateTrayVisibilityItems();
             }
             else
@@ -816,6 +1002,10 @@ namespace FeynmanPet
                 behaviorTimer.Stop();
                 bubbleTimer.Stop();
                 HideBubble();
+                if (microphoneWindow != null)
+                {
+                    microphoneWindow.Hide();
+                }
                 UpdateTrayVisibilityItems();
             }
         }
@@ -893,6 +1083,10 @@ namespace FeynmanPet
             string stateName = String.IsNullOrEmpty(currentStateName) ? "idle" : currentStateName;
             SetState(stateName, null, true, false);
             UpdateMenuChecks();
+            if (microphoneWindow != null)
+            {
+                microphoneWindow.PositionNearPet();
+            }
             SaveWindowState();
             RuntimeLog.Write(
                 "Profile=" + profile.Name + " window=" + Width.ToString("0.##") +
@@ -908,6 +1102,14 @@ namespace FeynmanPet
             if (bubbleWindow.IsVisible)
             {
                 bubbleWindow.ApplyWindowStyles();
+            }
+            if (microphoneWindow != null)
+            {
+                microphoneWindow.SetTopmost(enabled);
+            }
+            if (assistantWindow != null)
+            {
+                assistantWindow.SetTopmost(enabled);
             }
             UpdateMenuChecks();
             SaveWindowState();
@@ -1101,6 +1303,10 @@ namespace FeynmanPet
         private void AutoReturnTick(object sender, EventArgs e)
         {
             autoReturnTimer.Stop();
+            if (assistantInteractionActive)
+            {
+                return;
+            }
             if (currentState != null && currentState.Name != "sleep")
             {
                 SaveWindowState();
@@ -1110,7 +1316,8 @@ namespace FeynmanPet
 
         private void BehaviorTimerTick(object sender, EventArgs e)
         {
-            if (!IsVisible || currentState == null || currentState.Name != "idle")
+            if (!IsVisible || assistantInteractionActive ||
+                currentState == null || currentState.Name != "idle")
             {
                 idleTicks = 0;
                 return;
@@ -1385,6 +1592,15 @@ namespace FeynmanPet
         public void HidePet()
         {
             SaveWindowState();
+            if (assistantWindow != null)
+            {
+                assistantWindow.SuspendForHide();
+                assistantWindow.Hide();
+            }
+            if (microphoneWindow != null)
+            {
+                microphoneWindow.Hide();
+            }
             Hide();
             RuntimeLog.Write("Pet hidden to tray.");
         }
@@ -1396,6 +1612,7 @@ namespace FeynmanPet
             RestoreWindowPosition();
             ApplyTopmostToNativeWindow();
             UpdateMenuChecks();
+            UpdateMicrophoneButtonVisibility();
             ShowBubble("我回来了。", 1800);
             RuntimeLog.Write("Pet restored from tray.");
         }
@@ -1709,6 +1926,10 @@ namespace FeynmanPet
 
                 bool selfTest = HasFlag(args, "--self-test");
                 bool animationTest = HasFlag(args, "--animation-test");
+                bool voiceDiagnostics = HasFlag(args, "--voice-diagnostics");
+                bool espeakPlaybackTest = HasFlag(args, "--espeak-playback-test");
+                bool ttsTextTest = HasFlag(args, "--tts-text-test");
+                bool openAssistant = HasFlag(args, "--open-assistant");
                 bool persist = !HasFlag(args, "--no-save");
                 int autoExit = ReadIntOption(args, "--auto-exit", 0);
                 string state = ReadOption(args, "--state");
@@ -1734,6 +1955,7 @@ namespace FeynmanPet
                 {
                     string report = AuditAssets(catalog);
                     report += PetWindow.ValidateWindowConfiguration(root, catalog, settings);
+                    report += AuditAssistantConfiguration();
                     string reportPath = Path.Combine(root, "logs", "self-test.txt");
                     Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
                     File.WriteAllText(reportPath, report, Encoding.UTF8);
@@ -1741,32 +1963,68 @@ namespace FeynmanPet
                     return report.Contains("=FAIL") ? 2 : 0;
                 }
 
-                Application app = new Application();
-                app.ShutdownMode = ShutdownMode.OnMainWindowClose;
-                PetWindow window = new PetWindow(
-                    root,
-                    catalog,
-                    settings,
-                    profile,
-                    persist);
-                if (String.IsNullOrEmpty(state))
+                if (voiceDiagnostics)
                 {
-                    state = "idle";
+                    string report = VoiceDiagnostics.Run(root);
+                    string reportPath = Path.Combine(root, "logs", "voice-diagnostics.txt");
+                    Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+                    File.WriteAllText(reportPath, report, Encoding.UTF8);
+                    RuntimeLog.Write("Voice diagnostics finished.");
+                    return 0;
                 }
-                if (!window.HasState(state))
+
+                if (espeakPlaybackTest)
                 {
-                    state = "idle";
+                    return RunESpeakPlaybackTest(root);
                 }
-                window.SetState(state, null, false, false);
-                if (animationTest)
+                if (ttsTextTest)
                 {
-                    window.StartAnimationTest(delegate { window.Close(); });
+                    return RunTtsTextTests(root);
                 }
-                if (autoExit > 0)
+
+                bool createdNew;
+                using (Mutex instanceMutex = new Mutex(
+                    true,
+                    "Local\\FeynmanPet.SingleInstance",
+                    out createdNew))
                 {
-                    window.CloseAfterSeconds(autoExit);
+                    if (!createdNew)
+                    {
+                        MessageBox.Show(
+                            "费曼桌宠已经在运行。请使用现有窗口或系统托盘图标。",
+                            "费曼桌宠",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                        return 0;
+                    }
+                    Application app = new Application();
+                    app.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                    PetWindow window = new PetWindow(
+                        root,
+                        catalog,
+                        settings,
+                        profile,
+                        persist);
+                    window.OpenAssistantOnStartup = openAssistant;
+                    if (String.IsNullOrEmpty(state))
+                    {
+                        state = "idle";
+                    }
+                    if (!window.HasState(state))
+                    {
+                        state = "idle";
+                    }
+                    window.SetState(state, null, false, false);
+                    if (animationTest)
+                    {
+                        window.StartAnimationTest(delegate { window.Close(); });
+                    }
+                    if (autoExit > 0)
+                    {
+                        window.CloseAfterSeconds(autoExit);
+                    }
+                    app.Run(window);
                 }
-                app.Run(window);
                 return 0;
             }
             catch (Exception exception)
@@ -1889,6 +2147,263 @@ namespace FeynmanPet
             return report.ToString();
         }
 
+        private static int RunESpeakPlaybackTest(string root)
+        {
+            StringBuilder report = new StringBuilder();
+            ESpeakTtsService service = new ESpeakTtsService();
+            try
+            {
+                IList<VoiceDescriptor> voices = service.GetVoices();
+                VoiceDescriptor chinese = null;
+                VoiceDescriptor english = null;
+                foreach (VoiceDescriptor voice in voices)
+                {
+                    report.AppendLine(
+                        "Voice=" + voice.Name + " | " + voice.CultureName +
+                        " | " + voice.Gender);
+                    if (chinese == null &&
+                        voice.CultureName.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                    {
+                        chinese = voice;
+                    }
+                    if (english == null &&
+                        voice.CultureName.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+                    {
+                        english = voice;
+                    }
+                }
+                bool passed = chinese != null && english != null;
+                if (chinese != null)
+                {
+                    TtsPreparedText chineseText = TtsTextPreprocessor.Prepare(
+                        "## 光\n- 光具有**波粒二象性**，频率约为 50%（来源）。",
+                        "zh");
+                    service.SpeakAsync(
+                        chineseText.Text,
+                        chineseText.Language,
+                        0,
+                        chinese.Name,
+                        CancellationToken.None).GetAwaiter().GetResult();
+                    report.AppendLine("ChinesePlayback=PASS");
+                }
+                else
+                {
+                    report.AppendLine("ChinesePlayback=UNAVAILABLE_NO_VOICE");
+                }
+                if (english != null)
+                {
+                    TtsPreparedText englishText = TtsTextPreprocessor.Prepare(
+                        "## Light\n- **Interference** is about 50% of the story " +
+                        "([source](https://example.com)). Formula: E=mc^2.",
+                        "en");
+                    service.SpeakAsync(
+                        englishText.Text,
+                        englishText.Language,
+                        0,
+                        english.Name,
+                        CancellationToken.None).GetAwaiter().GetResult();
+                    report.AppendLine("EnglishPlayback=PASS");
+                }
+                else
+                {
+                    report.AppendLine("EnglishPlayback=UNAVAILABLE_NO_VOICE");
+                }
+                bool stopped = false;
+                if (chinese != null)
+                {
+                    CancellationTokenSource cancellation = new CancellationTokenSource();
+                    Task active = service.SpeakAsync(
+                        "这是一个用于验证停止功能的较长中文测试句子。请持续朗读。",
+                        "zh",
+                        -3,
+                        chinese.Name,
+                        cancellation.Token);
+                    System.Threading.Thread.Sleep(450);
+                    cancellation.Cancel();
+                    try
+                    {
+                        stopped = active.Wait(5000);
+                    }
+                    catch (AggregateException)
+                    {
+                        stopped = active.IsCanceled;
+                    }
+                }
+                report.AppendLine(stopped ? "StopTest=PASS" : "StopTest=FAIL");
+                passed &= stopped;
+                report.AppendLine(passed ? "ESPEAK_PLAYBACK=PASS" : "ESPEAK_PLAYBACK=FAIL");
+                RuntimeLog.Write("eSpeak playback test finished. passed=" + passed);
+                return passed ? 0 : 2;
+            }
+            catch (Exception exception)
+            {
+                report.AppendLine("ESPEAK_PLAYBACK=FAIL");
+                report.AppendLine(exception.ToString());
+                RuntimeLog.Write("eSpeak playback test failed: " + exception);
+                return 2;
+            }
+            finally
+            {
+                service.Dispose();
+                string path = Path.Combine(root, "logs", "espeak-playback-test.txt");
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, report.ToString(), Encoding.UTF8);
+            }
+        }
+
+        private static int RunTtsTextTests(string root)
+        {
+            StringBuilder report = new StringBuilder();
+            bool passed = true;
+
+            string englishSource =
+                "## Why is the sky blue?\n" +
+                "- **Rayleigh scattering** explains this ([source](https://example.com)).\n" +
+                "- About 25% of light is scattered. Formula: E=mc^2.";
+            TtsPreparedText english = TtsTextPreprocessor.Prepare(englishSource, "en");
+            passed &= Check(report, "EnglishLanguage", english.Language == "en");
+            passed &= Check(report, "EnglishNoMarkdown",
+                !english.Text.Contains("#") &&
+                !english.Text.Contains("**") &&
+                !english.Text.Contains("](") &&
+                !english.Text.Contains("http"));
+            passed &= Check(report, "EnglishPercent",
+                english.Text.Contains("25 percent"));
+            passed &= Check(report, "EnglishFormula",
+                english.Text.Contains("squared"));
+            report.AppendLine("EnglishCleaned=" + english.Text);
+
+            string chineseSource =
+                "## 光\n- 光具有**波粒二象性**，频率约为 50%（参见[资料](https://example.com)）。";
+            TtsPreparedText chinese = TtsTextPreprocessor.Prepare(chineseSource, "zh");
+            passed &= Check(report, "ChineseLanguage", chinese.Language == "zh");
+            passed &= Check(report, "ChineseNoMarkdown",
+                !chinese.Text.Contains("#") &&
+                !chinese.Text.Contains("**") &&
+                !chinese.Text.Contains("](") &&
+                !chinese.Text.Contains("http"));
+            passed &= Check(report, "ChinesePercent",
+                chinese.Text.Contains("百分之50"));
+            passed &= Check(report, "ChinesePunctuation",
+                chinese.Text.Contains("，") && chinese.Text.Contains("。"));
+            report.AppendLine("ChineseCleaned=" + chinese.Text);
+
+            TtsPreparedText symbols = TtsTextPreprocessor.Prepare("*** --- ||| @@@ ###", "en");
+            passed &= Check(report, "PureSymbolsRejected", symbols.WasEmpty);
+
+            TtsPreparedText code = TtsTextPreprocessor.Prepare(
+                "Before.\n```csharp\nConsole.WriteLine(\"x\");\n```\nAfter.",
+                "en");
+            passed &= Check(report, "CodeRemoved",
+                code.RemovedCode &&
+                !code.Text.Contains("Console") &&
+                code.Text.Contains("Before") &&
+                code.Text.Contains("After"));
+
+            AssistantSettings languageSettings = new AssistantSettings();
+            string englishPrompt = DeepSeekChatService.BuildSystemPrompt(languageSettings, "en");
+            string chinesePrompt = DeepSeekChatService.BuildSystemPrompt(languageSettings, "zh");
+            passed &= Check(report, "EnglishSystemDirective",
+                englishPrompt.IndexOf(
+                    "natural, fluent English",
+                    StringComparison.OrdinalIgnoreCase) >= 0 &&
+                englishPrompt.IndexOf(
+                    "HIGHEST PRIORITY",
+                    StringComparison.OrdinalIgnoreCase) >= 0);
+            passed &= Check(report, "ChineseSystemDirective",
+                chinesePrompt.IndexOf(
+                    "Simplified Chinese",
+                    StringComparison.OrdinalIgnoreCase) >= 0);
+            passed &= Check(report, "AnswerLanguageOverride",
+                LanguageTools.Resolve("en", "解释一下什么是光的干涉") == "en" &&
+                LanguageTools.Resolve("zh", "What is quantum entanglement?") == "zh");
+            passed &= Check(report, "AutoLanguage",
+                LanguageTools.Resolve("auto", "解释一下什么是光的干涉") == "zh" &&
+                LanguageTools.Resolve("auto", "What is quantum entanglement?") == "en");
+
+            report.AppendLine(passed ? "TTS_TEXT_TESTS=PASS" : "TTS_TEXT_TESTS=FAIL");
+            string path = Path.Combine(root, "logs", "tts-text-test.txt");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllText(path, report.ToString(), Encoding.UTF8);
+            return passed ? 0 : 2;
+        }
+
+        private static string AuditAssistantConfiguration()
+        {
+            StringBuilder report = new StringBuilder();
+            bool passed = true;
+            AssistantSettings assistant = new AssistantSettings();
+            WindowsSpeechRecognitionService recognition =
+                new WindowsSpeechRecognitionService();
+            try
+            {
+                int recognizers = recognition.GetInstalledRecognizers().Count;
+                report.AppendLine("AssistantRecognizers=" + recognizers);
+                report.AppendLine("AssistantRecognitionService=" +
+                    (recognizers > 0 ? "PASS" : "UNAVAILABLE"));
+            }
+            finally
+            {
+                recognition.Dispose();
+            }
+
+            WindowsTtsService tts = new WindowsTtsService();
+            try
+            {
+                bool chinese = tts.SupportsLanguage("zh");
+                bool english = tts.SupportsLanguage("en");
+                report.AppendLine("AssistantChineseTts=" + (chinese ? "PASS" : "UNAVAILABLE"));
+                report.AppendLine("AssistantEnglishTts=" + (english ? "PASS" : "UNAVAILABLE"));
+                passed &= chinese;
+            }
+            finally
+            {
+                tts.Dispose();
+            }
+
+            DeepSeekChatService chat = new DeepSeekChatService();
+            try
+            {
+                report.AppendLine("AssistantDeepSeekKey=" +
+                    (chat.IsConfigured ? "CONFIGURED" : "MISSING"));
+                if (!chat.IsConfigured)
+                {
+                    try
+                    {
+                        chat.AskAsync(
+                            "configuration test",
+                            assistant,
+                            LanguageTools.Resolve(
+                                assistant.OutputLanguage,
+                                "configuration test"),
+                            CancellationToken.None).GetAwaiter().GetResult();
+                        passed = false;
+                        report.AppendLine("AssistantMissingKeyHandling=FAIL");
+                    }
+                    catch (ChatServiceException exception)
+                    {
+                        bool clear = exception.Code == "missing_key" &&
+                            exception.Message.IndexOf(
+                                "DEEPSEEK_API_KEY",
+                                StringComparison.Ordinal) >= 0;
+                        report.AppendLine(
+                            "AssistantMissingKeyHandling=" + (clear ? "PASS" : "FAIL"));
+                        passed &= clear;
+                    }
+                }
+                else
+                {
+                    report.AppendLine("AssistantMissingKeyHandling=NOT_APPLICABLE");
+                }
+            }
+            finally
+            {
+                chat.Dispose();
+            }
+            report.AppendLine(passed ? "ASSISTANT_CONFIG=PASS" : "ASSISTANT_CONFIG=FAIL");
+            return report.ToString();
+        }
+
         private static string ReadOption(string[] args, string name)
         {
             string prefix = name + "=";
@@ -1911,6 +2426,12 @@ namespace FeynmanPet
         {
             int parsed;
             return Int32.TryParse(ReadOption(args, name), out parsed) ? parsed : fallback;
+        }
+
+        private static bool Check(StringBuilder report, string name, bool passed)
+        {
+            report.AppendLine(name + "=" + (passed ? "PASS" : "FAIL"));
+            return passed;
         }
 
         private static bool HasFlag(string[] args, string flag)

@@ -9,7 +9,10 @@
 # Local runtime data
 /data/
 /logs/
+/recordings/
 *.log
+*.wav
+*.mp3
 
 # Python cache and virtual environments
 __pycache__/

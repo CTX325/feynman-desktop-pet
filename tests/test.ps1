@@ -7,6 +7,10 @@ python (Join-Path $projectRoot "tests\test_assets.py")
 if ($LASTEXITCODE -ne 0) {
     throw "PNG asset test failed."
 }
+python (Join-Path $projectRoot "tests\test_repository.py")
+if ($LASTEXITCODE -ne 0) {
+    throw "Repository security test failed."
+}
 
 $executable = Join-Path $projectRoot "bin\FeynmanPet.exe"
 $selfTest = Start-Process -FilePath $executable -ArgumentList "--self-test" -WorkingDirectory $projectRoot -PassThru
@@ -20,6 +24,34 @@ if ($selfTest.ExitCode -ne 0) {
 $report = Get-Content -Raw (Join-Path $projectRoot "logs\self-test.txt")
 if ($report -match "FAIL") {
     throw "Self-test report contains FAIL:`n$report"
+}
+
+$voiceTest = Start-Process -FilePath $executable -ArgumentList "--voice-diagnostics" -WorkingDirectory $projectRoot -PassThru
+if (-not $voiceTest.WaitForExit(30000)) {
+    $voiceTest.Kill()
+    throw "Voice diagnostics timed out."
+}
+$voiceReport = Get-Content -Raw (Join-Path $projectRoot "logs\voice-diagnostics.txt")
+if ($voiceReport -notmatch "TtsVoices=[1-9]") {
+    throw "No Windows TTS voices were detected."
+}
+if ($voiceReport -notmatch "ChineseTtsVoice=INSTALLED") {
+    throw "No Chinese TTS voice is installed."
+}
+if ($voiceReport -notmatch "EnglishTtsVoice=INSTALLED") {
+    throw "No English TTS voice is installed."
+}
+$ttsTextTest = Start-Process -FilePath $executable -ArgumentList "--tts-text-test" -WorkingDirectory $projectRoot -PassThru
+if (-not $ttsTextTest.WaitForExit(20000)) {
+    $ttsTextTest.Kill()
+    throw "TTS text preprocessing test timed out."
+}
+if ($ttsTextTest.ExitCode -ne 0) {
+    throw "TTS text preprocessing test failed."
+}
+$ttsTextReport = Get-Content -Raw (Join-Path $projectRoot "logs\tts-text-test.txt")
+if ($ttsTextReport -notmatch "TTS_TEXT_TESTS=PASS") {
+    throw "TTS text preprocessing report did not pass:`n$ttsTextReport"
 }
 
 $runtimeLog = Join-Path $projectRoot "logs\runtime.log"
@@ -79,6 +111,23 @@ public static class FeynmanWindowTest {
         }, IntPtr.Zero);
         return found;
     }
+    public static IntPtr FindTitle(uint target, string expectedTitle) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+            uint pid;
+            GetWindowThreadProcessId(hWnd, out pid);
+            if (pid != target || !IsWindowVisible(hWnd)) return true;
+            int length = GetWindowTextLength(hWnd);
+            StringBuilder text = new StringBuilder(length + 1);
+            GetWindowText(hWnd, text, text.Capacity);
+            if (text.ToString() == expectedTitle) {
+                found = hWnd;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
     public static int CountVisible(uint target) {
         int count = 0;
         EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
@@ -121,6 +170,17 @@ function Get-PetWindowRect([int]$processId) {
         Width = $rect.Right - $rect.Left
         Height = $rect.Bottom - $rect.Top
     }
+}
+
+function Wait-WindowTitle([int]$processId, [string]$title) {
+    for ($attempt = 0; $attempt -lt 24; $attempt++) {
+        $handle = [FeynmanWindowTest]::FindTitle([uint32]$processId, $title)
+        if ($handle -ne [IntPtr]::Zero) {
+            return $handle
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    return [IntPtr]::Zero
 }
 
 $expectedSizes = @{
@@ -172,6 +232,27 @@ foreach ($size in @("48", "64", "96")) {
     Stop-Process -Id $process.Id -Force
     Start-Sleep -Milliseconds 250
 }
+
+$assistantProcess = Start-Process -FilePath $executable -ArgumentList "--open-assistant","--no-save","--auto-exit=6" -WorkingDirectory $projectRoot -PassThru
+$assistantTitle = -join ([char[]](0x8D39,0x66FC,0x20,0x41,0x49,0x20,0x5BF9,0x8BDD))
+$assistantHandle = Wait-WindowTitle $assistantProcess.Id $assistantTitle
+$micHandle = Wait-WindowTitle $assistantProcess.Id "Feynman microphone"
+if ($assistantHandle -eq [IntPtr]::Zero) {
+    Stop-Process -Id $assistantProcess.Id -Force
+    throw "AI assistant window did not open."
+}
+if ($micHandle -eq [IntPtr]::Zero) {
+    Stop-Process -Id $assistantProcess.Id -Force
+    throw "Microphone shortcut window did not open."
+}
+if (-not $assistantProcess.WaitForExit(15000)) {
+    $assistantProcess.Kill()
+    throw "AI assistant process did not close cleanly."
+}
+if ($assistantProcess.ExitCode -ne 0) {
+    throw "AI assistant process exited with code $($assistantProcess.ExitCode)."
+}
+Start-Sleep -Milliseconds 250
 
 $settingsPath = Join-Path $projectRoot "data\pet-settings.ini"
 $backup = $null

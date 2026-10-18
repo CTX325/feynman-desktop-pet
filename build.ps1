@@ -45,13 +45,18 @@ $references = @(
     (Find-GacAssembly "PresentationFramework"),
     (Find-GacAssembly "PresentationCore"),
     (Find-GacAssembly "WindowsBase"),
-    (Find-GacAssembly "System.Xaml")
+    (Find-GacAssembly "System.Xaml"),
+    (Find-GacAssembly "System.Speech"),
+    (Find-GacAssembly "System.Net.Http")
 )
 
 $binDirectory = Join-Path $projectRoot "bin"
 New-Item -ItemType Directory -Path $binDirectory -Force | Out-Null
 $outputPath = Join-Path $binDirectory "FeynmanPet.exe"
 $sourcePath = Join-Path $projectRoot "src\FeynmanPet.cs"
+$assistantSources = Get-ChildItem (Join-Path $projectRoot "src\Ai") -Filter "*.cs" |
+    Sort-Object Name |
+    ForEach-Object { $_.FullName }
 $iconPath = Join-Path $projectRoot "assets\feynman\feynman.ico"
 $compilerArgs = @(
     "/nologo",
@@ -67,6 +72,7 @@ foreach ($reference in $references) {
     $compilerArgs += "/r:$reference"
 }
 $compilerArgs += $sourcePath
+$compilerArgs += $assistantSources
 
 & $cscPath $compilerArgs
 if ($LASTEXITCODE -ne 0) {
