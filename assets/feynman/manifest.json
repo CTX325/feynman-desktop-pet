@@ -1,0 +1,540 @@
+{
+  "name": "成熟像素风·理查德·费曼桌面宠物",
+  "design": "Mature-proportion retro RPG sprite, original pixel redraw",
+  "canvas_reference": [
+    64,
+    96
+  ],
+  "default_size": [
+    64,
+    96
+  ],
+  "transparent": true,
+  "profiles": {
+    "48x72": {
+      "width": 48,
+      "height": 72,
+      "states": {
+        "idle": {
+          "label": "待机与呼吸",
+          "frames": [
+            "48x72/idle/frame_00.png",
+            "48x72/idle/frame_01.png",
+            "48x72/idle/frame_02.png",
+            "48x72/idle/frame_03.png",
+            "48x72/idle/frame_04.png",
+            "48x72/idle/frame_05.png"
+          ],
+          "delay_ms": 260,
+          "loop": true,
+          "content_bbox": [
+            12,
+            2,
+            26,
+            69
+          ]
+        },
+        "blink": {
+          "label": "眨眼",
+          "frames": [
+            "48x72/blink/frame_00.png",
+            "48x72/blink/frame_01.png",
+            "48x72/blink/frame_02.png",
+            "48x72/blink/frame_03.png",
+            "48x72/blink/frame_04.png",
+            "48x72/blink/frame_05.png"
+          ],
+          "delay_ms": 80,
+          "loop": false,
+          "content_bbox": [
+            12,
+            2,
+            25,
+            69
+          ]
+        },
+        "walk": {
+          "label": "行走（窗口可水平翻转）",
+          "frames": [
+            "48x72/walk/frame_00.png",
+            "48x72/walk/frame_01.png",
+            "48x72/walk/frame_02.png",
+            "48x72/walk/frame_03.png",
+            "48x72/walk/frame_04.png",
+            "48x72/walk/frame_05.png",
+            "48x72/walk/frame_06.png",
+            "48x72/walk/frame_07.png"
+          ],
+          "delay_ms": 100,
+          "loop": true,
+          "content_bbox": [
+            10,
+            2,
+            28,
+            67
+          ]
+        },
+        "jump": {
+          "label": "跳跃",
+          "frames": [
+            "48x72/jump/frame_00.png",
+            "48x72/jump/frame_01.png",
+            "48x72/jump/frame_02.png",
+            "48x72/jump/frame_03.png",
+            "48x72/jump/frame_04.png",
+            "48x72/jump/frame_05.png"
+          ],
+          "delay_ms": 100,
+          "loop": false,
+          "content_bbox": [
+            8,
+            0,
+            33,
+            71
+          ]
+        },
+        "sleep": {
+          "label": "坐着打盹",
+          "frames": [
+            "48x72/sleep/frame_00.png",
+            "48x72/sleep/frame_01.png",
+            "48x72/sleep/frame_02.png",
+            "48x72/sleep/frame_03.png"
+          ],
+          "delay_ms": 450,
+          "loop": true,
+          "content_bbox": [
+            11,
+            6,
+            34,
+            64
+          ]
+        },
+        "think": {
+          "label": "思考物理问题",
+          "frames": [
+            "48x72/think/frame_00.png",
+            "48x72/think/frame_01.png",
+            "48x72/think/frame_02.png",
+            "48x72/think/frame_03.png",
+            "48x72/think/frame_04.png",
+            "48x72/think/frame_05.png"
+          ],
+          "delay_ms": 260,
+          "loop": true,
+          "content_bbox": [
+            12,
+            2,
+            35,
+            69
+          ]
+        },
+        "explain": {
+          "label": "讲解物理",
+          "frames": [
+            "48x72/explain/frame_00.png",
+            "48x72/explain/frame_01.png",
+            "48x72/explain/frame_02.png",
+            "48x72/explain/frame_03.png",
+            "48x72/explain/frame_04.png",
+            "48x72/explain/frame_05.png"
+          ],
+          "delay_ms": 220,
+          "loop": true,
+          "content_bbox": [
+            12,
+            2,
+            33,
+            69
+          ]
+        },
+        "pet": {
+          "label": "摸头回应",
+          "frames": [
+            "48x72/pet/frame_00.png",
+            "48x72/pet/frame_01.png",
+            "48x72/pet/frame_02.png",
+            "48x72/pet/frame_03.png",
+            "48x72/pet/frame_04.png",
+            "48x72/pet/frame_05.png"
+          ],
+          "delay_ms": 120,
+          "loop": false,
+          "content_bbox": [
+            12,
+            3,
+            31,
+            68
+          ]
+        },
+        "click": {
+          "label": "点击回应",
+          "frames": [
+            "48x72/click/frame_00.png",
+            "48x72/click/frame_01.png",
+            "48x72/click/frame_02.png",
+            "48x72/click/frame_03.png"
+          ],
+          "delay_ms": 100,
+          "loop": false,
+          "content_bbox": [
+            8,
+            2,
+            33,
+            69
+          ]
+        }
+      }
+    },
+    "64x96": {
+      "width": 64,
+      "height": 96,
+      "states": {
+        "idle": {
+          "label": "待机与呼吸",
+          "frames": [
+            "64x96/idle/frame_00.png",
+            "64x96/idle/frame_01.png",
+            "64x96/idle/frame_02.png",
+            "64x96/idle/frame_03.png",
+            "64x96/idle/frame_04.png",
+            "64x96/idle/frame_05.png"
+          ],
+          "delay_ms": 260,
+          "loop": true,
+          "content_bbox": [
+            16,
+            3,
+            34,
+            91
+          ]
+        },
+        "blink": {
+          "label": "眨眼",
+          "frames": [
+            "64x96/blink/frame_00.png",
+            "64x96/blink/frame_01.png",
+            "64x96/blink/frame_02.png",
+            "64x96/blink/frame_03.png",
+            "64x96/blink/frame_04.png",
+            "64x96/blink/frame_05.png"
+          ],
+          "delay_ms": 80,
+          "loop": false,
+          "content_bbox": [
+            16,
+            3,
+            33,
+            91
+          ]
+        },
+        "walk": {
+          "label": "行走（窗口可水平翻转）",
+          "frames": [
+            "64x96/walk/frame_00.png",
+            "64x96/walk/frame_01.png",
+            "64x96/walk/frame_02.png",
+            "64x96/walk/frame_03.png",
+            "64x96/walk/frame_04.png",
+            "64x96/walk/frame_05.png",
+            "64x96/walk/frame_06.png",
+            "64x96/walk/frame_07.png"
+          ],
+          "delay_ms": 100,
+          "loop": true,
+          "content_bbox": [
+            13,
+            3,
+            37,
+            89
+          ]
+        },
+        "jump": {
+          "label": "跳跃",
+          "frames": [
+            "64x96/jump/frame_00.png",
+            "64x96/jump/frame_01.png",
+            "64x96/jump/frame_02.png",
+            "64x96/jump/frame_03.png",
+            "64x96/jump/frame_04.png",
+            "64x96/jump/frame_05.png"
+          ],
+          "delay_ms": 100,
+          "loop": false,
+          "content_bbox": [
+            10,
+            0,
+            44,
+            94
+          ]
+        },
+        "sleep": {
+          "label": "坐着打盹",
+          "frames": [
+            "64x96/sleep/frame_00.png",
+            "64x96/sleep/frame_01.png",
+            "64x96/sleep/frame_02.png",
+            "64x96/sleep/frame_03.png"
+          ],
+          "delay_ms": 450,
+          "loop": true,
+          "content_bbox": [
+            15,
+            8,
+            44,
+            85
+          ]
+        },
+        "think": {
+          "label": "思考物理问题",
+          "frames": [
+            "64x96/think/frame_00.png",
+            "64x96/think/frame_01.png",
+            "64x96/think/frame_02.png",
+            "64x96/think/frame_03.png",
+            "64x96/think/frame_04.png",
+            "64x96/think/frame_05.png"
+          ],
+          "delay_ms": 260,
+          "loop": true,
+          "content_bbox": [
+            16,
+            3,
+            46,
+            91
+          ]
+        },
+        "explain": {
+          "label": "讲解物理",
+          "frames": [
+            "64x96/explain/frame_00.png",
+            "64x96/explain/frame_01.png",
+            "64x96/explain/frame_02.png",
+            "64x96/explain/frame_03.png",
+            "64x96/explain/frame_04.png",
+            "64x96/explain/frame_05.png"
+          ],
+          "delay_ms": 220,
+          "loop": true,
+          "content_bbox": [
+            16,
+            3,
+            43,
+            91
+          ]
+        },
+        "pet": {
+          "label": "摸头回应",
+          "frames": [
+            "64x96/pet/frame_00.png",
+            "64x96/pet/frame_01.png",
+            "64x96/pet/frame_02.png",
+            "64x96/pet/frame_03.png",
+            "64x96/pet/frame_04.png",
+            "64x96/pet/frame_05.png"
+          ],
+          "delay_ms": 120,
+          "loop": false,
+          "content_bbox": [
+            16,
+            4,
+            41,
+            90
+          ]
+        },
+        "click": {
+          "label": "点击回应",
+          "frames": [
+            "64x96/click/frame_00.png",
+            "64x96/click/frame_01.png",
+            "64x96/click/frame_02.png",
+            "64x96/click/frame_03.png"
+          ],
+          "delay_ms": 100,
+          "loop": false,
+          "content_bbox": [
+            12,
+            2,
+            41,
+            92
+          ]
+        }
+      }
+    },
+    "96x144": {
+      "width": 96,
+      "height": 144,
+      "states": {
+        "idle": {
+          "label": "待机与呼吸",
+          "frames": [
+            "96x144/idle/frame_00.png",
+            "96x144/idle/frame_01.png",
+            "96x144/idle/frame_02.png",
+            "96x144/idle/frame_03.png",
+            "96x144/idle/frame_04.png",
+            "96x144/idle/frame_05.png"
+          ],
+          "delay_ms": 260,
+          "loop": true,
+          "content_bbox": [
+            24,
+            6,
+            52,
+            135
+          ]
+        },
+        "blink": {
+          "label": "眨眼",
+          "frames": [
+            "96x144/blink/frame_00.png",
+            "96x144/blink/frame_01.png",
+            "96x144/blink/frame_02.png",
+            "96x144/blink/frame_03.png",
+            "96x144/blink/frame_04.png",
+            "96x144/blink/frame_05.png"
+          ],
+          "delay_ms": 80,
+          "loop": false,
+          "content_bbox": [
+            24,
+            6,
+            49,
+            135
+          ]
+        },
+        "walk": {
+          "label": "行走（窗口可水平翻转）",
+          "frames": [
+            "96x144/walk/frame_00.png",
+            "96x144/walk/frame_01.png",
+            "96x144/walk/frame_02.png",
+            "96x144/walk/frame_03.png",
+            "96x144/walk/frame_04.png",
+            "96x144/walk/frame_05.png",
+            "96x144/walk/frame_06.png",
+            "96x144/walk/frame_07.png"
+          ],
+          "delay_ms": 100,
+          "loop": true,
+          "content_bbox": [
+            20,
+            6,
+            54,
+            132
+          ]
+        },
+        "jump": {
+          "label": "跳跃",
+          "frames": [
+            "96x144/jump/frame_00.png",
+            "96x144/jump/frame_01.png",
+            "96x144/jump/frame_02.png",
+            "96x144/jump/frame_03.png",
+            "96x144/jump/frame_04.png",
+            "96x144/jump/frame_05.png"
+          ],
+          "delay_ms": 100,
+          "loop": false,
+          "content_bbox": [
+            15,
+            0,
+            67,
+            141
+          ]
+        },
+        "sleep": {
+          "label": "坐着打盹",
+          "frames": [
+            "96x144/sleep/frame_00.png",
+            "96x144/sleep/frame_01.png",
+            "96x144/sleep/frame_02.png",
+            "96x144/sleep/frame_03.png"
+          ],
+          "delay_ms": 450,
+          "loop": true,
+          "content_bbox": [
+            22,
+            12,
+            67,
+            127
+          ]
+        },
+        "think": {
+          "label": "思考物理问题",
+          "frames": [
+            "96x144/think/frame_00.png",
+            "96x144/think/frame_01.png",
+            "96x144/think/frame_02.png",
+            "96x144/think/frame_03.png",
+            "96x144/think/frame_04.png",
+            "96x144/think/frame_05.png"
+          ],
+          "delay_ms": 260,
+          "loop": true,
+          "content_bbox": [
+            25,
+            5,
+            67,
+            136
+          ]
+        },
+        "explain": {
+          "label": "讲解物理",
+          "frames": [
+            "96x144/explain/frame_00.png",
+            "96x144/explain/frame_01.png",
+            "96x144/explain/frame_02.png",
+            "96x144/explain/frame_03.png",
+            "96x144/explain/frame_04.png",
+            "96x144/explain/frame_05.png"
+          ],
+          "delay_ms": 220,
+          "loop": true,
+          "content_bbox": [
+            25,
+            6,
+            64,
+            135
+          ]
+        },
+        "pet": {
+          "label": "摸头回应",
+          "frames": [
+            "96x144/pet/frame_00.png",
+            "96x144/pet/frame_01.png",
+            "96x144/pet/frame_02.png",
+            "96x144/pet/frame_03.png",
+            "96x144/pet/frame_04.png",
+            "96x144/pet/frame_05.png"
+          ],
+          "delay_ms": 120,
+          "loop": false,
+          "content_bbox": [
+            24,
+            6,
+            62,
+            135
+          ]
+        },
+        "click": {
+          "label": "点击回应",
+          "frames": [
+            "96x144/click/frame_00.png",
+            "96x144/click/frame_01.png",
+            "96x144/click/frame_02.png",
+            "96x144/click/frame_03.png"
+          ],
+          "delay_ms": 100,
+          "loop": false,
+          "content_bbox": [
+            17,
+            4,
+            63,
+            137
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+# Windows build outputs
+/bin/
+/obj/
+/out/
+/FeynmanPet.exe
+*.pdb
+*.exe
+
+# Local runtime data
+/data/
+/logs/
+*.log
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Editor and IDE state
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userprefs
+*.sln.docstates
+
+# Temporary files and package caches
+/tmp/
+/temp/
+*.tmp
+*.bak
+*.swp
+*~
+.npm-cache/
+.pnpm-store*/
+node_modules/
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+
+# Operating-system metadata
+Thumbs.db
+desktop.ini
+.DS_Store

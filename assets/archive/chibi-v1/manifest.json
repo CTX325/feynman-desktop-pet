@@ -1,0 +1,118 @@
+{
+  "name": "费曼 Q 版像素桌宠",
+  "character": "Richard Feynman inspired chibi",
+  "source": "Original redraw based on the supplied design overview",
+  "canvas": {
+    "width": 280,
+    "height": 320,
+    "format": "RGBA PNG",
+    "background": "transparent"
+  },
+  "pixel_scale": 2,
+  "states": {
+    "idle": {
+      "label": "待机与呼吸",
+      "frames": [
+        "idle/frame_00.png",
+        "idle/frame_01.png",
+        "idle/frame_02.png",
+        "idle/frame_03.png"
+      ],
+      "delay_ms": 290,
+      "loop": true
+    },
+    "blink": {
+      "label": "眨眼",
+      "frames": [
+        "blink/frame_00.png",
+        "blink/frame_01.png",
+        "blink/frame_02.png",
+        "blink/frame_03.png",
+        "blink/frame_04.png",
+        "blink/frame_05.png"
+      ],
+      "delay_ms": 90,
+      "loop": false
+    },
+    "walk": {
+      "label": "行走",
+      "frames": [
+        "walk/frame_00.png",
+        "walk/frame_01.png",
+        "walk/frame_02.png",
+        "walk/frame_03.png",
+        "walk/frame_04.png",
+        "walk/frame_05.png"
+      ],
+      "delay_ms": 110,
+      "loop": true
+    },
+    "jump": {
+      "label": "跳跃",
+      "frames": [
+        "jump/frame_00.png",
+        "jump/frame_01.png",
+        "jump/frame_02.png",
+        "jump/frame_03.png",
+        "jump/frame_04.png",
+        "jump/frame_05.png"
+      ],
+      "delay_ms": 100,
+      "loop": false
+    },
+    "sleep": {
+      "label": "睡觉",
+      "frames": [
+        "sleep/frame_00.png",
+        "sleep/frame_01.png",
+        "sleep/frame_02.png"
+      ],
+      "delay_ms": 440,
+      "loop": true
+    },
+    "pet": {
+      "label": "摸头回应",
+      "frames": [
+        "pet/frame_00.png",
+        "pet/frame_01.png",
+        "pet/frame_02.png",
+        "pet/frame_03.png",
+        "pet/frame_04.png"
+      ],
+      "delay_ms": 110,
+      "loop": false
+    },
+    "think": {
+      "label": "思考",
+      "frames": [
+        "think/frame_00.png",
+        "think/frame_01.png",
+        "think/frame_02.png",
+        "think/frame_03.png"
+      ],
+      "delay_ms": 280,
+      "loop": true
+    },
+    "explain": {
+      "label": "讲解物理",
+      "frames": [
+        "explain/frame_00.png",
+        "explain/frame_01.png",
+        "explain/frame_02.png",
+        "explain/frame_03.png",
+        "explain/frame_04.png",
+        "explain/frame_05.png"
+      ],
+      "delay_ms": 210,
+      "loop": true
+    }
+  },
+  "interaction": {
+    "head_hitbox": [
+      70,
+      58,
+      29
+    ],
+    "notes": "Drag to move; click head for pet response; double-click for physics explanation."
+  }
+}
